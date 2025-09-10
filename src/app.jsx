@@ -5,6 +5,7 @@ export default function App() {
   const [activities, setActivities] = useState([]);
   const [editingActivity, setEditingActivity] = useState(null);
   const [editDateTime, setEditDateTime] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const addActivity = (type) => {
     const now = new Date();
