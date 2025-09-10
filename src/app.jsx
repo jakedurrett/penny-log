@@ -199,7 +199,12 @@ export default function App() {
             )}
           </div>
 
-          {activities.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full mx-auto mb-3"></div>
+              <p>Loading activities...</p>
+            </div>
+          ) : activities.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Dog className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No activities logged yet!</p>
