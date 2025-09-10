@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dog, Droplet, Circle, Utensils, Clock, Calendar, Edit2, Check, X, Lock } from 'lucide-react';
+import { Dog, Droplet, Circle, Utensils, Clock, Calendar, Edit2, Check, X, Lock, Trash2 } from 'lucide-react';
 import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -107,6 +107,16 @@ export default function App() {
   const cancelEdit = () => {
     setEditingActivity(null);
     setEditDateTime('');
+  };
+
+  const deleteActivity = async (activityId) => {
+    if (window.confirm('Are you sure you want to delete this activity?')) {
+      try {
+        await deleteDoc(doc(db, 'activities', activityId));
+      } catch (error) {
+        console.error('Error deleting activity:', error);
+      }
+    }
   };
 
   const formatTime = (date) => {
