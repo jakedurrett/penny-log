@@ -184,6 +184,13 @@ export default function App() {
           
           <div className="flex justify-center items-center gap-2 mb-2">
             <h1 className="text-3xl font-bold text-white">The Penny Log</h1>
+            <button
+              onClick={handleLogout}
+              className="ml-4 text-sm text-gray-400 hover:text-white"
+              title="Logout"
+            >
+              <Lock className="w-4 h-4" />
+            </button>
           </div>
           <p className="text-gray-300">Tracking Penny's daily adventures</p>
         </div>
