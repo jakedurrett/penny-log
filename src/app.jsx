@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dog, Droplet, Circle, Utensils, Clock, Calendar, Edit2, Check, X } from 'lucide-react';
+import { Dog, Droplet, Circle, Utensils, Clock, Calendar, Edit2, Check, X, Lock } from 'lucide-react';
 import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -7,10 +7,48 @@ export default function App() {
   const [activities, setActivities] = useState([]);
   const [editingActivity, setEditingActivity] = useState(null);
   const [editDateTime, setEditDateTime] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
 
-  // Load activities from Firebase on component mount
+  // Password for family access
+  const CORRECT_PASSWORD = 'pennylane';
+
+  // Check if already authenticated on page load
   useEffect(() => {
+    const authStatus = localStorage.getItem('penny-auth');
+    if (authStatus === 'authenticated') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // Handle password submission
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === CORRECT_PASSWORD) {
+      setIsAuthenticated(true);
+      localStorage.setItem('penny-auth', 'authenticated');
+      setPassword('');
+    } else {
+      alert('Incorrect password. Try again.');
+      setPassword('');
+    }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('penny-auth');
+  };
+
+  // Load activities from Firebase when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     const q = query(collection(db, 'activities'), orderBy('timestamp', 'desc'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const activitiesData = [];
@@ -18,15 +56,15 @@ export default function App() {
         activitiesData.push({
           id: doc.id,
           ...doc.data(),
-          timestamp: doc.data().timestamp.toDate() // Convert Firestore timestamp to Date
+          timestamp: doc.data().timestamp.toDate()
         });
       });
       setActivities(activitiesData);
       setLoading(false);
     });
 
-    return () => unsubscribe(); // Cleanup listener on unmount
-  }, []);
+    return () => unsubscribe();
+  }, [isAuthenticated]);
 
   const addActivity = async (type) => {
     try {
@@ -41,7 +79,6 @@ export default function App() {
 
   const startEdit = (activity) => {
     setEditingActivity(activity.id);
-    // Format the timestamp for datetime-local input
     const date = new Date(activity.timestamp);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -126,7 +163,6 @@ export default function App() {
   const clearHistory = async () => {
     if (window.confirm('Are you sure you want to clear all history?')) {
       try {
-        // Delete all activities
         const deletePromises = activities.map(activity => 
           deleteDoc(doc(db, 'activities', activity.id))
         );
@@ -137,6 +173,85 @@ export default function App() {
     }
   };
 
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-black p-4 flex items-center justify-center">
+        <div className="max-w-md mx-auto w-full">
+          <div className="text-center mb-8">
+            {/* Penny Graphic */}
+            <div className="mb-4">
+              <div 
+                className="w-20 h-20 mx-auto rounded-full shadow-lg flex items-center justify-center relative"
+                style={{
+                  animation: 'flipCoin 2s linear infinite',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 25%, #92400e 50%, #d97706 75%, #f59e0b 100%)',
+                  boxShadow: '0 8px 16px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.3)'
+                }}
+              >
+                <div 
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: 'linear-gradient(90deg, transparent 0%, #92400e 20%, #a16207 50%, #92400e 80%, transparent 100%)',
+                    transform: 'translateZ(-2px)',
+                    boxShadow: '0 0 0 2px #78350f, 0 2px 4px rgba(0,0,0,0.5)'
+                  }}
+                ></div>
+                
+                <div 
+                  className="w-16 h-16 rounded-full flex items-center justify-center relative z-10"
+                  style={{
+                    background: 'radial-gradient(ellipse at 30% 30%, #fbbf24, #f59e0b 40%, #d97706 70%, #92400e)',
+                    boxShadow: 'inset 0 4px 8px rgba(255,255,255,0.4), inset 0 -4px 8px rgba(0,0,0,0.4), inset 0 0 16px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <span 
+                    className="font-bold text-sm"
+                    style={{
+                      color: '#92400e',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5), 0 0 4px rgba(255,255,255,0.3)'
+                    }}
+                  >
+                    1¢
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <h1 className="text-3xl font-bold text-white mb-2">The Penny Log</h1>
+            <p className="text-gray-300 mb-8">Enter password to access</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Lock className="w-6 h-6 text-gray-600" />
+                <h2 className="text-xl font-semibold text-gray-800">Family Access</h2>
+              </div>
+              
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                autoFocus
+              />
+              
+              <button
+                type="submit"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
+              >
+                Access Penny Log
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main app interface (when authenticated)
   return (
     <div className="min-h-screen bg-black p-4">
       <div className="max-w-md mx-auto">
@@ -152,7 +267,6 @@ export default function App() {
                 boxShadow: '0 8px 16px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.3)'
               }}
             >
-              {/* Coin edge/thickness */}
               <div 
                 className="absolute inset-0 rounded-full"
                 style={{
@@ -184,6 +298,13 @@ export default function App() {
           
           <div className="flex justify-center items-center gap-2 mb-2">
             <h1 className="text-3xl font-bold text-white">The Penny Log</h1>
+            <button
+              onClick={handleLogout}
+              className="ml-4 text-gray-400 hover:text-white transition-colors"
+              title="Logout"
+            >
+              <Lock className="w-4 h-4" />
+            </button>
           </div>
           <p className="text-gray-300">Tracking Penny's daily adventures</p>
         </div>
