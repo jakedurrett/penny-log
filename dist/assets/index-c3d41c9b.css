@@ -1,1 +1,0 @@
-@tailwind base;@tailwind components;@tailwind utilities;@keyframes flipCoin{0%{transform:perspective(400px) rotateY(0)}25%{transform:perspective(400px) rotateY(90deg) scale(.85)}50%{transform:perspective(400px) rotateY(180deg)}75%{transform:perspective(400px) rotateY(270deg) scale(.85)}to{transform:perspective(400px) rotateY(360deg)}}
