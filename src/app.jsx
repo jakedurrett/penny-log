@@ -1,21 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dog, Droplet, Circle, Utensils, Clock, Calendar, Edit2, Check, X } from 'lucide-react';
+import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { db } from './firebase';
 
 export default function App() {
   const [activities, setActivities] = useState([]);
   const [editingActivity, setEditingActivity] = useState(null);
   const [editDateTime, setEditDateTime] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const addActivity = (type) => {
-    const now = new Date();
-    const newActivity = {
-      id: Date.now(),
-      type,
-      timestamp: now
-    };
-    
-    setActivities(prev => [newActivity, ...prev]);
+  // Load activities from Firebase on component mount
+  useEffect(() => {
+    const q = query(collection(db, 'activities'), orderBy('timestamp', 'desc'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const activitiesData = [];
+      querySnapshot.forEach((doc) => {
+        activitiesData.push({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp.toDate() // Convert Firestore timestamp to Date
+        });
+      });
+      setActivities(activitiesData);
+      setLoading(false);
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, []);
+
+  const addActivity = async (type) => {
+    try {
+      await addDoc(collection(db, 'activities'), {
+        type,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error('Error adding activity:', error);
+    }
   };
 
   const startEdit = (activity) => {
@@ -30,17 +51,20 @@ export default function App() {
     setEditDateTime(`${year}-${month}-${day}T${hours}:${minutes}`);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editDateTime) return;
     
-    setActivities(prev => prev.map(activity => 
-      activity.id === editingActivity 
-        ? { ...activity, timestamp: new Date(editDateTime) }
-        : activity
-    ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-    
-    setEditingActivity(null);
-    setEditDateTime('');
+    try {
+      const activityRef = doc(db, 'activities', editingActivity);
+      await updateDoc(activityRef, {
+        timestamp: new Date(editDateTime)
+      });
+      
+      setEditingActivity(null);
+      setEditDateTime('');
+    } catch (error) {
+      console.error('Error updating activity:', error);
+    }
   };
 
   const cancelEdit = () => {
@@ -99,9 +123,17 @@ export default function App() {
     }
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
     if (window.confirm('Are you sure you want to clear all history?')) {
-      setActivities([]);
+      try {
+        // Delete all activities
+        const deletePromises = activities.map(activity => 
+          deleteDoc(doc(db, 'activities', activity.id))
+        );
+        await Promise.all(deletePromises);
+      } catch (error) {
+        console.error('Error clearing history:', error);
+      }
     }
   };
 
