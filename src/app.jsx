@@ -403,12 +403,22 @@ export default function App() {
                         <span>{formatDate(activity.timestamp)}</span>
                         <span>•</span>
                         <span>{formatTime(activity.timestamp)}</span>
-                        <button
-                          onClick={() => startEdit(activity)}
-                          className="ml-2 p-1 text-gray-500 hover:text-gray-700"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={() => startEdit(activity)}
+                            className="p-1 text-gray-500 hover:text-gray-700"
+                            title="Edit time"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => deleteActivity(activity.id)}
+                            className="p-1 text-red-500 hover:text-red-700"
+                            title="Delete activity"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
